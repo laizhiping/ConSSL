@@ -38,7 +38,6 @@ class Solver():
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-
     def check_dirs(self):
         if not os.path.exists(self.args.log_path):
             os.makedirs(self.args.log_path)
@@ -57,7 +56,6 @@ class Solver():
         num_gestures= len(self.args.gestures)
         self.model = stcn.STCN(num_channels=1, num_points=self.args.num_channels, num_classes=num_gestures)
         self.model.to(self.device)
-
 
     def start(self, task):
         self.logger.info(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
