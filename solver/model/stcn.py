@@ -124,7 +124,6 @@ class STCB(nn.Module):
         self.tcn = TCN(out_channels, out_channels, stride=stride)
         # self.se = SE_Block(out_channels, 2)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
 
         if not residual:
             self.rb = lambda x: 0
@@ -143,11 +142,26 @@ class STCB(nn.Module):
         
         return x
 
+class BN(nn.Module):
+    def __init__(self, num_channels, num_points):
+        super(BN, self).__init__()
+        self.bn1d = nn.BatchNorm1d(num_channels * num_points)
+        bn_init(self.bn1d, 1)
+        
+    def forward(self, x):
+        N, C, T, V = x.size()
+        # N, V*C, T
+        x = x.permute(0, 3, 1, 2).contiguous().view(N, V * C, T)
+        x = self.bn1d(x)
+        # N, C, T, V
+        x = x.view(N, V, C, T).permute(0, 2, 3, 1).contiguous().view(N, C, T, V)
+        
+        return x
 
 class STCN(nn.Module):
     def __init__(self, num_channels, num_points, num_classes):
         super(STCN, self).__init__()
-        self.data_bn = nn.BatchNorm1d(num_channels * num_points)
+        self.bn = BN(num_channels, num_points)
         self.stcbs = nn.Sequential(
             STCB(num_channels, 4, num_points, residual=False),
             STCB(4, 8, num_points, stride=1),
@@ -156,16 +170,11 @@ class STCN(nn.Module):
         )
         self.dropout = nn.Dropout(0.5)
 
-        bn_init(self.data_bn, 1)
-
     # batch, channel, frame, point
     def forward(self, x):
         N, C, T, V = x.size()
-        # N, V*C, T
-        x = x.permute(0, 3, 1, 2).contiguous().view(N, V * C, T)
-        x = self.data_bn(x)
         # N, C, T, V
-        x = x.view(N, V, C, T).permute(0, 2, 3, 1).contiguous().view(N, C, T, V)
+        x =self.bn(x)
 
         # N, C2, T, V
         x = self.stcbs(x)

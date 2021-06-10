@@ -15,17 +15,6 @@ test_trials: [2, 4, 6, 8, 10]
 window_size: 150
 window_step: 150
 
-
-# preprocess
-amplify: False
-lpf: False
-bpf: False
-u_normalization: False
-u: 256
-abs: False
-move_average: False
-
-
 # train
 need_pretrain: False
 num_epochs: 30
@@ -38,10 +27,10 @@ gamma: 0.1
 
 
 # model
-model_path: model
+model_path: results
 
 # logger
-log_path: log
+log_path: logs
 
 # tensorboard
 tb_path: runs

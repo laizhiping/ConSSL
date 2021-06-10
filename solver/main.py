@@ -7,7 +7,8 @@ import random
 from torch.utils.tensorboard import SummaryWriter
 
 from solver.utils import log, data_reader
-from solver.stcn import stcn
+from solver.model import stcn
+from solver.runner import cons
 
 class Solver():
     def __init__(self, args):
@@ -23,8 +24,6 @@ class Solver():
     def dump_info(self):
         for k, v in vars(self.args).items():
             self.logger.info(f"{k}: {v}")
-        
-        self.logger.info(f"{self.model}")
 
     def init_device(self):
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
@@ -54,8 +53,8 @@ class Solver():
 
     def get_model(self):
         num_gestures= len(self.args.gestures)
-        self.model = stcn.STCN(num_channels=1, num_points=self.args.num_channels, num_classes=num_gestures)
-        self.model.to(self.device)
+        model = stcn.STCN(num_channels=1, num_points=self.args.num_channels, num_classes=num_gestures)
+        return model.to(self.device)
 
     def start(self, task):
         self.logger.info(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -70,11 +69,6 @@ class Solver():
             raise ValueError
 
         self.logger.info(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-
-    def inter_session(self):
-        pass
-    def inter_subject(self):
-        pass
 
     def intra_session(self):
         subjects = self.args.subjects
@@ -136,6 +130,15 @@ class Solver():
 
         else:
             raise ValueError
+
+
+    def inter_session(self):
+        trainer = cons.Trainer(self.args, self.logger)
+        trainer.start()
+
+    def inter_subject(self):
+        pass
+
 
 
     def get_loader(self, subjects, sessions, gestures, trials):

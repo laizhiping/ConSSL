@@ -1,4 +1,4 @@
-### STCN-GR: Spatial-Temporal Convolutional Networks for Surface-Electromyography-Based Gesture Recognition
+### Contrastive self-supervised learning framework to solve the task of inter-session
 
 This repository contains the source codes of our work: *STCN-GR: Spatial-Temporal Convolutional Networks for Surface-Electromyography-Based Gesture Recognition*.
 

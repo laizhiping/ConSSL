@@ -1,7 +1,7 @@
-model/
-log/
+results/
+logs/
 runs/
 __pycache__
 .vscode
 
-script/
+scripts/
