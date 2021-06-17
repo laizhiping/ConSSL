@@ -1,8 +1,8 @@
 results/
 logs/
 runs/
-# scripts/
-# dataset/
+scripts/
+dataset/
 
 __pycache__
 .vscode

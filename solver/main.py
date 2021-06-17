@@ -4,11 +4,12 @@ import time
 import torch
 import numpy as np
 import random
+from torch.nn.modules import linear
 from torch.utils.tensorboard import SummaryWriter
 
 from solver.utils import log, data_reader
 from solver.model import stcn
-from solver.runner import cons
+from solver.runner import cons, linear_runner
 
 class Solver():
     def __init__(self, args):
@@ -38,18 +39,18 @@ class Solver():
         torch.backends.cudnn.benchmark = False
 
     def check_dirs(self):
-        if not os.path.exists(self.args.log_path):
-            os.makedirs(self.args.log_path)
-        if not os.path.exists(self.args.tb_path):
-            os.makedirs(self.args.tb_path)
-        if not os.path.exists(self.args.model_path):
-            os.makedirs(self.args.model_path)
+        if not os.path.exists(self.args.log_dir):
+            os.makedirs(self.args.log_dir)
+        if not os.path.exists(self.args.tb_dir):
+            os.makedirs(self.args.tb_dir)
+        if not os.path.exists(self.args.model_dir):
+            os.makedirs(self.args.model_dir)
 
     def get_logger_writer(self):
         t = time.strftime("%Y%m%d-%H%M%S", time.localtime())
         file_name = self.args.dataset_name + f"-{t}"
-        self.logger = log.get_logger(self.args.log_path, file_name+".log")
-        self.writer = SummaryWriter(os.path.join(self.args.tb_path, file_name))
+        self.logger = log.get_logger(self.args.log_dir, file_name+".log")
+        self.writer = SummaryWriter(os.path.join(self.args.tb_dir, file_name))
 
     def get_model(self):
         num_gestures= len(self.args.gestures)
@@ -133,7 +134,10 @@ class Solver():
 
 
     def inter_session(self):
-        trainer = cons.Trainer(self.args, self.logger)
+        if self.args.stage == "pretrain":
+            trainer = cons.Trainer(self.args, self.logger)
+        elif self.args.stage == "train":
+            trainer = linear_runner.Trainer(self.args, self.logger)
         trainer.start()
 
     def inter_subject(self):

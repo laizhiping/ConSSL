@@ -1,6 +1,7 @@
 import os
 import torch
 import pandas as pd
+import numpy as np
 from thop import profile, clever_format
 from tqdm import tqdm
 
@@ -58,21 +59,24 @@ class Trainer():
     # test for one epoch, use weighted knn to find the most similar images' label to assign the test image
     def test(self, epoch, net, memory_data_loader, test_data_loader):
         net.eval()
-        total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
+        total_top1, total_top5, total_num, feature_bank, feature_labels = 0.0, 0.0, 0, [], []
         with torch.no_grad():
             # generate feature bank
             for data, _, target in tqdm(memory_data_loader, desc='Feature extracting'):
-                feature, out = net(data.cuda(non_blocking=True))
+                feature, out = net(data.float().cuda(non_blocking=True))
                 feature_bank.append(feature)
+                feature_labels.append(target)
             # [D, N]
             feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
             # [N]
-            feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
+            # feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
+            feature_labels = torch.cat(feature_labels, dim=0).cuda(non_blocking=True)
+
             # loop test data to predict the label by weighted knn search
             test_bar = tqdm(test_data_loader)
             for data, _, target in test_bar:
                 data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-                feature, out = net(data)
+                feature, out = net(data.float().cuda(non_blocking=True))
 
                 total_num += data.size(0)
                 # compute cos similarity between each feature vector and feature bank ---> [B, N]
@@ -101,6 +105,7 @@ class Trainer():
     def start(self):
         subjects = self.args.subjects
         gestures = self.args.gestures
+        num_channels = self.args.num_channels
         num_gestures  = len(gestures)
         trials = self.args.trials
         train_sessions = self.args.train_sessions
@@ -109,43 +114,41 @@ class Trainer():
         test_trials = self.args.test_trials
 
 
-        if self.args.stage == "pretrain":
-            # accuracy = np.zeros(len(subjects))
-            for i, subject in enumerate(subjects):
-                self.logger.info(f"Begin pretraining subject {subject}")
-                # 可能需要改动
-                train_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
-                memory_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
-                test_loader = self.get_pair_loader([subject], test_sessions, gestures, test_trials)
-                # model = self.get_model()
-                
-                # model setup and optimizer config
-                model = framework.Model(self.args.num_channels, num_gestures, feature_dim=128).cuda()
-                flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
-                flops, params = clever_format([flops, params])
-                print('# Model Params: {} FLOPs: {}'.format(params, flops))
-                optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-                # c = len(memory_data.classes)
-                
-                # training loop
-                results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
-                save_name_pre = '{}_{}_{}_{}_{}'.format(self.args.feature_dim, self.args.temperature, self.args.k, self.args.batch_size, self.args.num_epochs)
-                if not os.path.exists('results'):
-                    os.mkdir('results')
-                best_acc = 0.0
-                for epoch in range(1, self.args.num_epochs + 1):
-                    train_loss = self.train(epoch, model, train_loader, optimizer)
-                    results['train_loss'].append(train_loss)
-                    test_acc_1, test_acc_5 = self.test(epoch, model, memory_loader, test_loader)
-                    results['test_acc@1'].append(test_acc_1)
-                    results['test_acc@5'].append(test_acc_5)
-                    # save statistics
-                    data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
-                    data_frame.to_csv('results/{}_statistics.csv'.format(save_name_pre), index_label='epoch')
-                    if test_acc_1 > best_acc:
-                        best_acc = test_acc_1
-                        torch.save(model.state_dict(), 'results/{}_model.pth'.format(save_name_pre))
+        accuracy = np.zeros(len(subjects))
+        for i, subject in enumerate(subjects):
+            self.logger.info(f"Begin pretraining subject {subject}")
+            # 可能需要改动
+            train_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
+            memory_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
+            test_loader = self.get_pair_loader([subject], test_sessions, gestures, test_trials)
+            # model = self.get_model()
+            
+            # model setup and optimizer config
+            model = framework.Model(self.args.num_channels, num_gestures, feature_dim=128).cuda()
+            flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            flops, params = clever_format([flops, params])
+            print('# Model Params: {} FLOPs: {}'.format(params, flops))
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
 
-            # self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")
+            
+            # training loop
+            results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
+            save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.args.feature_dim, self.args.temperature, self.args.k, self.args.batch_size, self.args.num_epochs)
+            best_acc = 0.0
+            for epoch in range(1, self.args.num_epochs + 1):
+                train_loss = self.train(epoch, model, train_loader, optimizer)
+                results['train_loss'].append(train_loss)
+                test_acc_1, test_acc_5 = self.test(epoch, model, memory_loader, test_loader)
+                results['test_acc@1'].append(test_acc_1)
+                results['test_acc@5'].append(test_acc_5)
+                # save statistics
+                data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
+                data_frame.to_csv('{}/{}_statistics.csv'.format(self.args.model_dir, save_name_pre), index_label='epoch')
+                if test_acc_1 > best_acc:
+                    best_acc = test_acc_1
+                    torch.save(model.state_dict(), '{}/{}_model.pth'.format(self.args.model_dir, save_name_pre))
+            
+            accuracy[i] = best_acc
+        self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")
             
     

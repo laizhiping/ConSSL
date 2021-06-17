@@ -1,13 +1,13 @@
 import scipy.io
 import os
 
-source_dir = "capgmyo\\dbb"
-target_dir = "..\\dataset\\capgmyo\\dbb"
+source_dir = "../../source-dataset/capgmyo/dbb"
+target_dir = "capgmyo/dbb"
 if not os.path.exists(target_dir):
     os.makedirs(target_dir)
 
 # subject: 1-20, trial:1-10, gesture: 1-8 (trial 1, gesture 100-101)
-for subject in range(1, 5):
+for subject in range(1, 21):
     s = (subject+1)//2 if subject%2==1 else subject//2
     session = 1 if subject%2==1 else 2
     # print(s, session)

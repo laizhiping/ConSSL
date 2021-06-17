@@ -1,13 +1,13 @@
 import scipy.io
 import os
 
-source_dir = "capgmyo\\dba"
-target_dir = "..\\dataset\\capgmyo\\dba"
+source_dir = "../../source-dataset/capgmyo/dba"
+target_dir = "capgmyo/dba"
 if not os.path.exists(target_dir):
     os.makedirs(target_dir)
 
 # subject: 1-18, trial:1-10, gesture: 1-8 (trial 1, gesture 100-101)
-for subject in range(1, 5):
+for subject in range(1, 19):
     for gesture in range(1, 9):
         for trial in range(1, 11):
             path = os.path.join(source_dir, f"dba-preprocessed-{subject:03d}", f"{subject:03d}-{gesture:03d}-{trial:03d}.mat")

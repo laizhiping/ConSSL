@@ -35,6 +35,8 @@ def get_parser():
     parser.add_argument("--window_step", "-ws", type=int, default=None)
     
     # contrastive
+    parser.add_argument('--model_path', type=str, default='results/128_0.5_200_512_500_model.pth',
+                        help='The pretrained model path')
     parser.add_argument('--feature_dim', default=128, type=int, help='Feature dim for latent vector')
     parser.add_argument('--temperature', default=0.5, type=float, help='Temperature used in softmax')
     parser.add_argument('--k', default=200, type=int, help='Top k most similar images used to predict the label')
@@ -47,7 +49,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
-        default_arg = yaml.load(f, Loader=yaml.FullLoader)
+        # default_arg = yaml.load(f, Loader=yaml.FullLoader)
+        default_arg = yaml.load(f)
 
     # update args if specified on the command line
     args = vars(args)
