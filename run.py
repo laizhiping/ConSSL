@@ -35,11 +35,10 @@ def get_parser():
     parser.add_argument("--window_step", "-ws", type=int, default=None)
     
     # contrastive
-    parser.add_argument('--model_path', type=str, default='results/1_128_0.5_200_16_1000_model.pth',
-                        help='The pretrained model path')
     parser.add_argument('--feature_dim', default=128, type=int, help='Feature dim for latent vector')
     parser.add_argument('--temperature', default=0.5, type=float, help='Temperature used in softmax')
     parser.add_argument('--k', default=200, type=int, help='Top k most similar images used to predict the label')
+
 
     return parser
 

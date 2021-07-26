@@ -136,9 +136,15 @@ class Solver():
     def inter_session(self):
         if self.args.stage == "pretrain":
             trainer = cons.Trainer(self.args, self.logger)
+            trainer.start()
         elif self.args.stage == "train":
             trainer = linear_runner.Trainer(self.args, self.logger)
-        trainer.start()
+            trainer.start()
+        elif self.args.stage == "test":
+            trainer = linear_runner.Trainer(self.args, self.logger)
+            trainer.test()
+        else:
+            raise ValueError
 
     def inter_subject(self):
         pass

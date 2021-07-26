@@ -125,15 +125,15 @@ class Trainer():
             
             # model setup and optimizer config
             model = framework.Model(self.args.num_channels, num_gestures, feature_dim=128).cuda()
-            flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
-            flops, params = clever_format([flops, params])
-            print('# Model Params: {} FLOPs: {}'.format(params, flops))
+            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            # flops, params = clever_format([flops, params])
+            # print('# Model Params: {} FLOPs: {}'.format(params, flops))
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
 
             
             # training loop
             results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
-            save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.args.feature_dim, self.args.temperature, self.args.k, self.args.batch_size, self.args.num_epochs)
+            save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.args.num_epochs, self.args.batch_size, self.args.feature_dim, self.args.temperature, self.args.k)
             best_acc = 0.0
             for epoch in range(1, self.args.num_epochs + 1):
                 train_loss = self.train(epoch, model, train_loader, optimizer)
@@ -146,7 +146,7 @@ class Trainer():
                 data_frame.to_csv('{}/{}_statistics.csv'.format(self.args.model_dir, save_name_pre), index_label='epoch')
                 if test_acc_1 > best_acc:
                     best_acc = test_acc_1
-                    torch.save(model.state_dict(), '{}/{}_model.pth'.format(self.args.model_dir, save_name_pre))
+                    torch.save(model.state_dict(), '{}/{}_model.pth'.format(self.args.model_dir, subject))
             
             accuracy[i] = best_acc
         self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")

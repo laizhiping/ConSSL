@@ -75,19 +75,19 @@ class Trainer():
             train_loader = self.get_data_loader([subject], test_sessions, gestures, train_trials)
             test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
 
-            model = linear.Net(num_channels, num_gestures, pretrained_path=self.args.model_path).cuda()
+            model = linear.Net(num_channels, num_gestures, pretrained_path=f'{self.args.model_dir}/{subject}_model.pth').cuda()
             for param in model.f.parameters():
                 param.requires_grad = False
 
-            flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
-            flops, params = clever_format([flops, params])
-            print('# Model Params: {} FLOPs: {}'.format(params, flops))
+            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            # flops, params = clever_format([flops, params])
+            # print('# Model Params: {} FLOPs: {}'.format(params, flops))
             optimizer = optim.Adam(model.fc.parameters(), lr=1e-3, weight_decay=1e-6)
             loss_criterion = nn.CrossEntropyLoss()
             results = {'train_loss': [], 'train_acc@1': [], 'train_acc@5': [],
                     'test_loss': [], 'test_acc@1': [], 'test_acc@5': []}
 
-            save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.args.feature_dim, self.args.temperature, self.args.k, self.args.batch_size, self.args.num_epochs)
+            save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.args.num_epochs, self.args.batch_size, self.args.feature_dim, self.args.temperature, self.args.k)
             best_acc = 0.0
             for epoch in range(1, self.args.num_epochs + 1):
                 train_loss, train_acc_1, train_acc_5 = self.train_val(epoch, model, train_loader, optimizer, loss_criterion)
@@ -103,7 +103,44 @@ class Trainer():
                 data_frame.to_csv('{}/{}_linear_statistics.csv'.format(self.args.model_dir, save_name_pre), index_label='epoch')
                 if test_acc_1 > best_acc:
                     best_acc = test_acc_1
-                    torch.save(model.state_dict(), '{}/{}_linear_model.pth'.format(self.args.model_dir, save_name_pre))
+                    torch.save(model.state_dict(), '{}/{}_linear_model.pth'.format(self.args.model_dir, subject))
             
             accuracy[i] = best_acc
         self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")
+
+    def test(self):
+        subjects = self.args.subjects
+        gestures = self.args.gestures
+        num_channels = self.args.num_channels
+        num_gestures  = len(gestures)
+        trials = self.args.trials
+        train_sessions = self.args.train_sessions
+        test_sessions = self.args.test_sessions
+        train_trials = self.args.train_trials
+        test_trials = self.args.test_trials
+
+        acc_1 = np.zeros(len(subjects))
+        acc_5 = np.zeros(len(subjects))
+        for i, subject in enumerate(subjects):
+            self.logger.info(f"Begin test linear: subject {subject}")
+            test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
+
+            model = linear.Net(num_channels, num_gestures, pretrained_path=f'{self.args.model_dir}/{subject}_linear_model.pth').cuda()
+            for param in model.f.parameters():
+                param.requires_grad = False
+
+            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            # flops, params = clever_format([flops, params])
+            # print('# Model Params: {} FLOPs: {}'.format(params, flops))
+            loss_criterion = nn.CrossEntropyLoss()
+            test_loss, test_acc_1, test_acc_5 = self.train_val(1, model, test_loader, None, loss_criterion)
+            acc_1[i] = test_acc_1
+            acc_5[i] = test_acc_5
+        
+        print(f"ACC@1:")
+        for item in acc_1:
+            print(item)
+        print(f"\nACC@5:")
+        for item in acc_5:
+            print(item)
+        print(f"Mean Acc@1: {acc_1.mean()}, mean Acc@5: {acc_5.mean()}") 
