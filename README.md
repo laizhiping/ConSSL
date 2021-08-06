@@ -1,4 +1,4 @@
-### Contrastive self-supervised learning framework to solve the task of inter-session
+## Constrastive domain adaptation: A self-supervised Learning Framework for sEMG-Based gesture recognition
 
 
 #### 1. Requirements
