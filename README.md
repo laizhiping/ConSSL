@@ -29,15 +29,15 @@ The dataset file *.mat* includes the sEMG channel data and the shape is *num_fra
 
 ##### 3. Pretrain
 ```
-python run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg pretrain -ne 30 -bs 16 [options]
+python3 run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg pretrain -ne 30 -bs 16 [options]
 ```
 ##### 4. Train
 ```
-python run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg train -ne 100 -bs 16 [options]
+python3 run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg train -ne 100 -bs 16 [options]
 ```
 ##### 5. Test
 ```
-python run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg test
+python3` run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg test
 ```
 
 *-cfg/--config* indicates the path of configuration file, *-sg/--stage* indicates stage (**pretrain/train/test**), *options* can be *-s/-wz/-ws*, and more details can be seen in *run.py*.
