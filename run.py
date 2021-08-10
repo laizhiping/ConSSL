@@ -65,4 +65,4 @@ if __name__ == "__main__":
     #     print(k, ": ", v)
     # print(yaml.dump(vars(args)))
     solver = Solver(args)
-    solver.start(task=args.task)
+    solver.start()

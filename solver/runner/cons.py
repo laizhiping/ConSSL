@@ -108,19 +108,30 @@ class Trainer():
         num_channels = self.args.num_channels
         num_gestures  = len(gestures)
         trials = self.args.trials
-        train_sessions = self.args.train_sessions
-        test_sessions = self.args.test_sessions
-        train_trials = self.args.train_trials
-        test_trials = self.args.test_trials
+        sessions = self.args.sessions
 
+        if self.args.task == "inter-session":
+            train_sessions = self.args.train_sessions
+            test_sessions = self.args.test_sessions
+            train_trials = self.args.train_trials
+            test_trials = self.args.test_trials
 
         accuracy = np.zeros(len(subjects))
         for i, subject in enumerate(subjects):
             self.logger.info(f"Begin pretraining subject {subject}")
             # 可能需要改动
-            train_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
-            memory_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
-            test_loader = self.get_pair_loader([subject], test_sessions, gestures, test_trials)
+            if self.args.task == "inter-subject":
+                train_subjects =  subjects[:]
+                train_subjects.remove(subject)
+                test_subjects = [subject]
+                train_loader = self.get_pair_loader(train_subjects, sessions, gestures, trials)
+                memory_loader = self.get_pair_loader(train_subjects, sessions, gestures, trials)
+                test_loader = self.get_pair_loader(test_subjects, sessions, gestures, trials)
+
+            elif self.args.task == "inter-session":
+                train_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
+                memory_loader = self.get_pair_loader([subject], train_sessions, gestures, trials)
+                test_loader = self.get_pair_loader([subject], test_sessions, gestures, test_trials)
             # model = self.get_model()
             
             # model setup and optimizer config
@@ -143,10 +154,10 @@ class Trainer():
                 results['test_acc@5'].append(test_acc_5)
                 # save statistics
                 data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
-                data_frame.to_csv('{}/{}_statistics.csv'.format(self.args.model_dir, save_name_pre), index_label='epoch')
+                data_frame.to_csv('{}/{}/{}_statistics.csv'.format(self.args.model_dir, self.args.task, save_name_pre), index_label='epoch')
                 if test_acc_1 > best_acc:
                     best_acc = test_acc_1
-                    torch.save(model.state_dict(), '{}/{}_model.pth'.format(self.args.model_dir, subject))
+                    torch.save(model.state_dict(), '{}/{}/{}_model.pth'.format(self.args.model_dir, self.args.task, subject))
             
             accuracy[i] = best_acc
         self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")

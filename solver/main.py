@@ -43,8 +43,8 @@ class Solver():
             os.makedirs(self.args.log_dir)
         if not os.path.exists(self.args.tb_dir):
             os.makedirs(self.args.tb_dir)
-        if not os.path.exists(self.args.model_dir):
-            os.makedirs(self.args.model_dir)
+        if not os.path.exists(f"{self.args.model_dir}/{self.args.task}"):
+            os.makedirs(f"{self.args.model_dir}/{self.args.task}")
 
     def get_logger_writer(self):
         t = time.strftime("%Y%m%d-%H%M%S", time.localtime())
@@ -57,15 +57,13 @@ class Solver():
         model = stcn.STCN(num_channels=1, num_points=self.args.num_channels, num_classes=num_gestures)
         return model.to(self.device)
 
-    def start(self, task):
+    def start(self):
         self.logger.info(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        self.logger.info(f"Task {task} {self.args.stage} ")
-        if task == "intra-session":
+        self.logger.info(f"Task {self.args.task} {self.args.stage} ")
+        if self.args.task == "intra-session":
             self.intra_session()
-        elif task == "inter-session":
-            self.inter_session()
-        elif task == "inter-subject":
-            self.inter_subject()
+        elif self.args.task == "inter-session" or self.args.task == "inter-subject":
+            self.inter_session_subject()
         else:
             raise ValueError
 
@@ -133,7 +131,7 @@ class Solver():
             raise ValueError
 
 
-    def inter_session(self):
+    def inter_session_subject(self):
         if self.args.stage == "pretrain":
             trainer = cons.Trainer(self.args, self.logger)
             trainer.start()
@@ -145,10 +143,6 @@ class Solver():
             trainer.test()
         else:
             raise ValueError
-
-    def inter_subject(self):
-        pass
-
 
 
     def get_loader(self, subjects, sessions, gestures, trials):

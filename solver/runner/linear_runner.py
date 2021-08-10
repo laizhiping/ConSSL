@@ -63,6 +63,7 @@ class Trainer():
         num_channels = self.args.num_channels
         num_gestures  = len(gestures)
         trials = self.args.trials
+        sessions = self.args.sessions
         train_sessions = self.args.train_sessions
         test_sessions = self.args.test_sessions
         train_trials = self.args.train_trials
@@ -72,10 +73,14 @@ class Trainer():
         for i, subject in enumerate(subjects):
             self.logger.info(f"Begin training linear: subject {subject}")
             # 可能需要改动
-            train_loader = self.get_data_loader([subject], test_sessions, gestures, train_trials)
-            test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
+            if self.args.task == "inter-session":
+                train_loader = self.get_data_loader([subject], test_sessions, gestures, train_trials)
+                test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
+            elif self.args.task == "inter-subject":
+                train_loader = self.get_data_loader([subject], sessions, gestures, train_trials)
+                test_loader = self.get_data_loader([subject], sessions, gestures, test_trials)
 
-            model = linear.Net(num_channels, num_gestures, pretrained_path=f'{self.args.model_dir}/{subject}_model.pth').cuda()
+            model = linear.Net(num_channels, num_gestures, pretrained_path=f'{self.args.model_dir}/{self.args.task}/{subject}_model.pth').cuda()
             for param in model.f.parameters():
                 param.requires_grad = False
 
@@ -100,10 +105,10 @@ class Trainer():
                 results['test_acc@5'].append(test_acc_5)
                 # save statistics
                 data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
-                data_frame.to_csv('{}/{}_linear_statistics.csv'.format(self.args.model_dir, save_name_pre), index_label='epoch')
+                data_frame.to_csv('{}/{}/{}_linear_statistics.csv'.format(self.args.model_dir, self.args.task, save_name_pre), index_label='epoch')
                 if test_acc_1 > best_acc:
                     best_acc = test_acc_1
-                    torch.save(model.state_dict(), '{}/{}_linear_model.pth'.format(self.args.model_dir, subject))
+                    torch.save(model.state_dict(), '{}/{}/{}_linear_model.pth'.format(self.args.model_dir, self.args.task, subject))
             
             accuracy[i] = best_acc
         self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")
@@ -113,19 +118,19 @@ class Trainer():
         gestures = self.args.gestures
         num_channels = self.args.num_channels
         num_gestures  = len(gestures)
-        trials = self.args.trials
-        train_sessions = self.args.train_sessions
+        sessions = self.args.sessions
         test_sessions = self.args.test_sessions
-        train_trials = self.args.train_trials
         test_trials = self.args.test_trials
 
         acc_1 = np.zeros(len(subjects))
         acc_5 = np.zeros(len(subjects))
         for i, subject in enumerate(subjects):
             self.logger.info(f"Begin test linear: subject {subject}")
-            test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
-
-            model = linear.Net(num_channels, num_gestures, pretrained_path=f'{self.args.model_dir}/{subject}_linear_model.pth').cuda()
+            if self.args.task == "inter-session":
+                test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
+            elif self.args.task == "inter-subject":
+                test_loader = self.get_data_loader([subject], sessions, gestures, test_trials)
+            model = linear.Net(num_channels, num_gestures, pretrained_path=f'{self.args.model_dir}/{self.args.task}/{subject}_linear_model.pth').cuda()
             for param in model.f.parameters():
                 param.requires_grad = False
 

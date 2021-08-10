@@ -3,6 +3,7 @@ logs/
 runs/
 scripts/
 dataset/
+temp/
 
 __pycache__
 .vscode
