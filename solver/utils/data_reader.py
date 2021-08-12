@@ -46,7 +46,7 @@ class DataReader(torch.utils.data.Dataset):
         y = self.y[trial_index]
         x = np.expand_dims(x, axis=0) # (1, frame, channel)
 
-        if self.args.dataset_name in ["capgmyo", "bandmyo", "ninapro"]:
+        if self.args.dataset_name in ["capgmyo-dbb", "capgmyo-dbc", "bandmyo", "ninapro"]:
             y = y - 1
         return x, y
 
@@ -181,7 +181,7 @@ class PairReader(torch.utils.data.Dataset):
         x1 = np.expand_dims(x1, axis=0) # (1, frame, channel)
         x2 = np.expand_dims(x2, axis=0)
 
-        if self.args.dataset_name in ["capgmyo", "bandmyo", "ninapro"]:
+        if self.args.dataset_name in ["capgmyo-dbb", "capgmyo-dbc", "bandmyo", "ninapro"]:
             y = y - 1
         return x1, x2, y
 

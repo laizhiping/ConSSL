@@ -5,7 +5,7 @@ from solver.model.stcn import STCN
 
 
 class Model(nn.Module):
-    def __init__(self, num_channels, num_gestures, feature_dim=128):
+    def __init__(self, num_channels, window_size, num_gestures, feature_dim=128):
         super(Model, self).__init__()
 
         stcn = STCN(1, num_points=num_channels, num_classes=num_gestures)
@@ -19,7 +19,7 @@ class Model(nn.Module):
         
         # projection head
         self.g = nn.Sequential(
-            nn.Linear(153600, 512, bias=False), 
+            nn.Linear(num_gestures * window_size * num_channels, 512, bias=False), 
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True), 
             nn.Linear(512, feature_dim, bias=True)

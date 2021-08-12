@@ -32,6 +32,7 @@ class Trainer():
             pos_1, pos_2 = pos_1.float().cuda(non_blocking=True), pos_2.float().cuda(non_blocking=True)
             feature_1, out_1 = net(pos_1)
             feature_2, out_2 = net(pos_2)
+            # print(pos_1.shape, pos_2.shape, out_1.shape, out_2.shape)
             # [2*B, D]
             out = torch.cat([out_1, out_2], dim=0)
             # [2*B, 2*B]
@@ -113,7 +114,6 @@ class Trainer():
         if self.args.task == "inter-session":
             train_sessions = self.args.train_sessions
             test_sessions = self.args.test_sessions
-            train_trials = self.args.train_trials
             test_trials = self.args.test_trials
 
         accuracy = np.zeros(len(subjects))
@@ -135,7 +135,7 @@ class Trainer():
             # model = self.get_model()
             
             # model setup and optimizer config
-            model = framework.Model(self.args.num_channels, num_gestures, feature_dim=128).cuda()
+            model = framework.Model(self.args.num_channels, self.args.window_size, num_gestures, feature_dim=128).cuda()
             # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
             # flops, params = clever_format([flops, params])
             # print('# Model Params: {} FLOPs: {}'.format(params, flops))
@@ -145,6 +145,7 @@ class Trainer():
             # training loop
             results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
             save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.args.num_epochs, self.args.batch_size, self.args.feature_dim, self.args.temperature, self.args.k)
+            save_dir = "{}/{}/{}".format(self.args.model_dir, self.args.task, self.args.dataset_name)
             best_acc = 0.0
             for epoch in range(1, self.args.num_epochs + 1):
                 train_loss = self.train(epoch, model, train_loader, optimizer)
@@ -154,10 +155,10 @@ class Trainer():
                 results['test_acc@5'].append(test_acc_5)
                 # save statistics
                 data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
-                data_frame.to_csv('{}/{}/{}_statistics.csv'.format(self.args.model_dir, self.args.task, save_name_pre), index_label='epoch')
+                data_frame.to_csv('{}/{}_statistics.csv'.format(save_dir, save_name_pre), index_label='epoch')
                 if test_acc_1 > best_acc:
                     best_acc = test_acc_1
-                    torch.save(model.state_dict(), '{}/{}/{}_model.pth'.format(self.args.model_dir, self.args.task, subject))
+                    torch.save(model.state_dict(), '{}/{}_model.pth'.format(save_dir, subject))
             
             accuracy[i] = best_acc
         self.logger.info(f"All subject average accuracy:\n {accuracy.mean()}")

@@ -5,13 +5,13 @@ from solver.utils import data_reader
 from solver.model import framework
 
 class Net(nn.Module):
-    def __init__(self, num_channels, num_gestures, pretrained_path, feature_dim=128,):
+    def __init__(self, num_channels, window_size, num_gestures, pretrained_path, feature_dim=128):
         super(Net, self).__init__()
 
         # encoder
-        self.f = framework.Model(num_channels, num_gestures, feature_dim).f
+        self.f = framework.Model(num_channels, window_size, num_gestures, feature_dim).f
         # classifier
-        self.fc = nn.Linear(153600, num_gestures, bias=True)
+        self.fc = nn.Linear(num_gestures*window_size*num_channels, num_gestures, bias=True)
         self.load_state_dict(torch.load(pretrained_path, map_location='cpu'), strict=False)
 
     # torch.Size([16, 1, 150, 128])

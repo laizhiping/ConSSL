@@ -43,8 +43,8 @@ class Solver():
             os.makedirs(self.args.log_dir)
         if not os.path.exists(self.args.tb_dir):
             os.makedirs(self.args.tb_dir)
-        if not os.path.exists(f"{self.args.model_dir}/{self.args.task}"):
-            os.makedirs(f"{self.args.model_dir}/{self.args.task}")
+        if not os.path.exists(f"{self.args.model_dir}/{self.args.task}/{self.args.dataset_name}"):
+            os.makedirs(f"{self.args.model_dir}/{self.args.task}/{self.args.dataset_name}")
 
     def get_logger_writer(self):
         t = time.strftime("%Y%m%d-%H%M%S", time.localtime())
