@@ -41,3 +41,8 @@ python3` run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg test
 ```
 
 *-cfg/--config* indicates the path of configuration file, *-sg/--stage* indicates stage (**pretrain/train/test**), *options* can be *-s/-wz/-ws*, and more details can be seen in *run.py*.
+
+
+
+# 1. 100%train数据为所有的train trials, 若要使用更少的数据inter-session和iner-subject只需要直接改train trials即可
+# 2. capgmyo数据集在inter-session和inter-subject任务中的不同在于inter-sesssion每个subject的第一个session用于prerain，而inter-subject其他所有的suject的所有session都用于pretrain

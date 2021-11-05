@@ -12,7 +12,8 @@ class Net(nn.Module):
         self.f = framework.Model(num_channels, window_size, num_gestures, feature_dim).f
         # classifier
         self.fc = nn.Linear(num_gestures*window_size*num_channels, num_gestures, bias=True)
-        self.load_state_dict(torch.load(pretrained_path, map_location='cpu'), strict=False)
+        # self.load_state_dict(torch.load(pretrained_path, map_location='cpu'), strict=False)
+        self.load_state_dict(torch.load(pretrained_path), strict=False)
 
     # torch.Size([16, 1, 150, 128])
     def forward(self, x):

@@ -2,6 +2,126 @@ import scipy.signal
 import numpy as np
 from scipy.ndimage.filters import median_filter
 
+# default: armband
+# 1. Apply the butterworth high pass filter at 2Hz
+# 2. shift_electrodes
+def butter_highpass(cutoff, fs, order=3):
+    nyq = .5*fs
+    normal_cutoff = cutoff/nyq
+    b, a = scipy.signal.butter(order, normal_cutoff, btype='high', analog=False)
+    return b, a
+
+# usage: butter_highpass_filter(channel_example, 2, 200)
+# channel_example: (52,)
+def butter_highpass_filter(data, cutoff, fs, order=3):
+    b, a = butter_highpass(cutoff=cutoff, fs=fs, order=order)
+    y = scipy.signal.lfilter(b, a, data)
+    return y
+
+# 每个被试的每个round/session的所有数据做shift
+# session_x: [n, (8, 52)]
+def get_final_shifting(session_x, session_y):
+    index_normal_class = [1, 2, 6, 2]  # The normal activation of the electrodes.
+    class_mean = []
+    # For the classes that are relatively invariant to the highest canals activation, we get on average for a
+    # subject the most active canals for those classes
+    for classe in range(3, 7):
+        cwt_add = [] # (8, 52)
+        for j in range(len(session_x)): # (5311, 8, 52)
+            if Y_example[j] == classe:
+                if cwt_add == []:
+                    cwt_add = np.array(session_x[j])
+                else:
+                    cwt_add += np.array(session_x[j])
+        # 3,4,5,6类的所有样本对应通道对应帧求和，然后帧内所有通道求和，并找出最大的帧
+        class_mean.append(np.argmax(np.sum(np.array(cwt_add), axis=0))) # class_mean: [32, 26, 34, 33]
+
+    # We check how many we have to shift for each channels to get back to the normal activation
+    new_cwt_emplacement_left = ((np.array(class_mean) - np.array(index_normal_class)) % 10) # array([1, 4, 8, 1])
+    new_cwt_emplacement_right = ((np.array(index_normal_class) - np.array(class_mean)) % 10) # array([9, 6, 2, 9])
+
+    shifts_array = [] # [-1, -4, 2, -1]
+    for valueA, valueB in zip(new_cwt_emplacement_left, new_cwt_emplacement_right):
+        if valueA < valueB:
+            # We want to shift toward the left (the start of the array)
+            orientation = -1
+            shifts_array.append(orientation*valueA)
+        else:
+            # We want to shift toward the right (the end of the array)
+            orientation = 1
+            shifts_array.append(orientation*valueB)
+
+    # We get the mean amount of shift and round it up to get a discrete number representing how much we have to shift
+    # if we consider all the canals
+    # Do the shifting only if the absolute mean is greater or equal to 0.5
+    final_shifting = np.mean(np.array(shifts_array))
+    if abs(final_shifting) >= 0.5:
+        final_shifting = int(np.round(final_shifting))
+    else:
+        final_shifting = 0
+
+    return final_shifting
+
+# 一个round/session的所有数据做shift
+def shift_electrodes(examples, labels): # [28, (189, 1, 8, 52)], [28, (189,)]
+    index_normal_class = [1, 2, 6, 2]  # The normal activation of the electrodes.
+    class_mean = []
+    # For the classes that are relatively invariant to the highest canals activation, we get on average for a
+    # subject the most active canals for those classes
+    for classe in range(3, 7):
+        X_example = []
+        Y_example = []
+        for k in range(len(examples)):
+            X_example.extend(examples[k])
+            Y_example.extend(labels[k])
+
+        cwt_add = [] # (8, 52)
+        for j in range(len(X_example)): # (5311, 1, 8, 52)
+            if Y_example[j] == classe:
+                if cwt_add == []:
+                    cwt_add = np.array(X_example[j][0])
+                else:
+                    cwt_add += np.array(X_example[j][0])
+        # 3,4,5,6类的所有样本对应通道对应帧求和，然后帧内所有通道求和，并找出最大的帧
+        class_mean.append(np.argmax(np.sum(np.array(cwt_add), axis=0))) # class_mean: [32, 26, 34, 33]
+
+    # We check how many we have to shift for each channels to get back to the normal activation
+    new_cwt_emplacement_left = ((np.array(class_mean) - np.array(index_normal_class)) % 10) # array([1, 4, 8, 1])
+    new_cwt_emplacement_right = ((np.array(index_normal_class) - np.array(class_mean)) % 10) # array([9, 6, 2, 9])
+
+    shifts_array = [] # [-1, -4, 2, -1]
+    for valueA, valueB in zip(new_cwt_emplacement_left, new_cwt_emplacement_right):
+        if valueA < valueB:
+            # We want to shift toward the left (the start of the array)
+            orientation = -1
+            shifts_array.append(orientation*valueA)
+        else:
+            # We want to shift toward the right (the end of the array)
+            orientation = 1
+            shifts_array.append(orientation*valueB)
+
+    # We get the mean amount of shift and round it up to get a discrete number representing how much we have to shift
+    # if we consider all the canals
+    # Do the shifting only if the absolute mean is greater or equal to 0.5
+    final_shifting = np.mean(np.array(shifts_array))
+    if abs(final_shifting) >= 0.5:
+        final_shifting = int(np.round(final_shifting))
+    else:
+        final_shifting = 0
+
+    # Build the dataset of the candiate with the circular shift taken into account.
+    X_example = []
+    Y_example = []
+    for k in range(len(examples)): # [28, (189, 1, 8, 52)]
+        sub_ensemble_example = []
+        for example in examples[k]:
+            sub_ensemble_example.append(np.roll(np.array(example), final_shifting)) # final_shifting = -1
+        X_example.append(sub_ensemble_example)
+        Y_example.append(labels[k])
+    return X_example, Y_example
+
+
+
 # default: ninapro
 # f: cut-off frequency  fs:sampling frequency
 def lpf(x, f=1, fs=100):

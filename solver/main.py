@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from solver.utils import log, data_reader
 from solver.model import stcn
-from solver.runner import cons, linear_runner
+from solver.runner import inter_subject, inter_session
 
 class Solver():
     def __init__(self, args):
@@ -39,8 +39,8 @@ class Solver():
         torch.backends.cudnn.benchmark = False
 
     def check_dirs(self):
-        if not os.path.exists(self.args.log_dir):
-            os.makedirs(self.args.log_dir)
+        if not os.path.exists(f"{self.args.log_dir}/{self.args.task}/{self.args.dataset_name}"):
+            os.makedirs(f"{self.args.log_dir}/{self.args.task}/{self.args.dataset_name}")
         if not os.path.exists(self.args.tb_dir):
             os.makedirs(self.args.tb_dir)
         if not os.path.exists(f"{self.args.model_dir}/{self.args.task}/{self.args.dataset_name}"):
@@ -48,8 +48,9 @@ class Solver():
 
     def get_logger_writer(self):
         t = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-        file_name = self.args.dataset_name + f"-{t}"
-        self.logger = log.get_logger(self.args.log_dir, file_name+".log")
+        file_name = self.args.dataset_name + f"{t}"
+        log_path = os.path.join(self.args.log_dir, self.args.task, self.args.dataset_name)
+        self.logger = log.get_logger(log_path, f"{t}.log")
         self.writer = SummaryWriter(os.path.join(self.args.tb_dir, file_name))
 
     def get_model(self):
@@ -58,12 +59,20 @@ class Solver():
         return model.to(self.device)
 
     def start(self):
+        self.logger.info('==============================================================')
         self.logger.info(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        self.logger.info(f"Task {self.args.task} {self.args.stage} ")
-        if self.args.task == "intra-session":
+        # self.logger.info(f"Task {self.args.task} {self.args.stage} ")
+        self.logger.info(f'Dataset_name: {self.args.dataset_name}')
+        self.logger.info(f'Leave one out cross validation: {self.args.loocv}')
+        self.logger.info(f'Task: {self.args.task}')
+        self.logger.info(f'Stage: {self.args.stage}')
+        
+        if self.args.task == "intra_session":
             self.intra_session()
-        elif self.args.task == "inter-session" or self.args.task == "inter-subject":
-            self.inter_session_subject()
+        elif self.args.task == "inter_session":
+            self.inter_session()
+        elif self.args.task == "inter_subject":
+            self.inter_subject()
         else:
             raise ValueError
 
@@ -130,16 +139,33 @@ class Solver():
         else:
             raise ValueError
 
-
-    def inter_session_subject(self):
+    def inter_session(self):
         if self.args.stage == "pretrain":
-            trainer = cons.Trainer(self.args, self.logger)
-            trainer.start()
+            pretrainer = inter_session.Pretrainer(self.args, self.logger)
+            pretrainer.start()
+
         elif self.args.stage == "train":
-            trainer = linear_runner.Trainer(self.args, self.logger)
+            trainer = inter_session.Trainer(self.args, self.logger)
             trainer.start()
         elif self.args.stage == "test":
-            trainer = linear_runner.Trainer(self.args, self.logger)
+            trainer = inter_session.Trainer(self.args, self.logger)
+            trainer.test()
+        else:
+            raise ValueError
+
+    def inter_subject(self):
+
+        if self.args.stage == "pretrain":
+            pretrainer = inter_subject.Pretrainer(self.args, self.logger)
+            if self.args.loocv:
+                pretrainer.leave_one_out()
+            else:
+                pretrainer.subject_split()
+        elif self.args.stage == "train":
+            trainer = inter_subject.Trainer(self.args, self.logger)
+            trainer.start(self.args.loocv)
+        elif self.args.stage == "test":
+            trainer = inter_subject.Trainer(self.args, self.logger)
             trainer.test()
         else:
             raise ValueError
