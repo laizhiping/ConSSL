@@ -1,5 +1,4 @@
 import argparse
-from types import TracebackType
 import yaml
 from solver import Solver
 
@@ -33,11 +32,18 @@ def get_parser():
     parser.add_argument('--k', default=200, type=int, help='Top k most similar images used to predict the label')
 
     # yaml args
-    parser.add_argument("--subjects", "-s", nargs="*", type=int, default=None)
+    parser.add_argument("--subjects", "-ss", nargs="*", type=int, default=None)
     parser.add_argument("--num_epochs", "-ne", type=int, default=None)
     parser.add_argument("--batch_size", "-bs", type=int, default=None)
     parser.add_argument("--window_size", "-wz", type=int, default=None)
     parser.add_argument("--window_step", "-ws", type=int, default=None)
+
+    parser.add_argument("--sessions", nargs="*", type=int, default=None)
+    parser.add_argument("--trials", nargs="*", type=int, default=None)
+    parser.add_argument("--train_sessions", nargs="*", type=int, default=None)
+    parser.add_argument("--test_sessions", nargs="*", type=int, default=None)
+    parser.add_argument("--train_trials", nargs="*", type=int, default=None)    
+    parser.add_argument("--test_trials", nargs="*", type=int, default=None)
 
     return parser
 
@@ -60,11 +66,20 @@ def update_args():
     stage_args = {}
     extra_args = {}
 
+
     keys = list(args.keys())
+    default_keys = list(default_arg[stage].keys())
+    # print(default_arg[stage].keys())
     for key in keys:
         if key in ["subjects", "num_epochs", "batch_size", "window_size", "window_step"]:
             if args[key]:
                 stage_args[key] = args[key]
+        elif key in ["sessions", "trials", "train_sessions", "test_sessions", "train_trials", "test_trials"]: # pretrain or train specific args
+            if args[key]: # if specificied
+                if key in default_keys: # if specificied key is in corresponding stage args, updates it
+                    stage_args[key] = args[key]
+                else:
+                    raise error
         else:
             extra_args[key] = args[key]
 

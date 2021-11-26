@@ -14,7 +14,7 @@ pretrain:
   trials: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   window_size: 150 # 150ms
   window_step: 150 # 150ms
-  batch_size: 16
+  batch_size: 8
   num_epochs: 100
 
 train:
