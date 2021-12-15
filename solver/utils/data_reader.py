@@ -260,7 +260,7 @@ class PairReader(torch.utils.data.Dataset):
 
         self.x_offsets = []
         end = len(x_offsets)-1 if len(x_offsets)%2 else len(x_offsets)
-        for i in range(0, end, 2):
+        for i in range(0, end-1, 1): # change step from 2->1
             example1, example2 = x_offsets[i], x_offsets[i+1]
             if example1[0] != example2[0]: # not same trial
                 i = i+1
