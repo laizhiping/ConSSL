@@ -20,4 +20,5 @@ class Net(nn.Module):
         x = self.f(x) # torch.Size([16, 8, 150, 128])
         feature = torch.flatten(x, start_dim=1) # torch.Size([16, 153600])
         out = self.fc(feature) # torch.Size([16, 8])
+        # np.save(f"matrix/B0.npy", self.B.cpu().detach().numpy())  
         return out

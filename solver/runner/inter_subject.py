@@ -13,6 +13,7 @@ class Pretrainer():
         self.logger = logger
 
         self.task = args.task
+        self.loocv = args.loocv
         self.feature_dim = args.feature_dim
         self.temperature = args.temperature
         self.k = args.k
@@ -158,6 +159,12 @@ class Pretrainer():
 
         return total_top1 / total_num * 100, total_top5 / total_num * 100
 
+    def start(self):
+        if self.loocv:
+            self.leave_one_out()
+        else:
+            self.subject_split()
+
     def leave_one_out(self):
         accuracy = np.zeros(len(self.pretrain_subjects))
         for i, subject in enumerate(self.pretrain_subjects):
@@ -266,6 +273,7 @@ class Trainer():
         self.logger = logger
 
         self.task = args.task
+        self.loocv = args.loocv
         self.feature_dim = args.feature_dim
         self.temperature = args.temperature
         self.k = args.k
@@ -329,7 +337,7 @@ class Trainer():
         return total_loss / total_num, total_correct_1 / total_num * 100, total_correct_5 / total_num * 100
 
 
-    def start(self, loocv):
+    def start(self):
         acc = np.zeros((len(self.subjects), 2))
         for i, subject in enumerate(self.subjects):
             train_loader = self.get_data_loader([subject], self.train_sessions, self.gestures, self.train_trials)
@@ -340,7 +348,7 @@ class Trainer():
             save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.num_epochs, self.batch_size, self.feature_dim, self.temperature, self.k)
             save_dir = "{}/{}/{}".format(self.model_dir, self.task, self.dataset_name)
             
-            if loocv:
+            if self.loocv:
                 model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/{subject}_pretrained_model.pth').cuda()
             else:
                 model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/pretrained_model.pth').cuda()

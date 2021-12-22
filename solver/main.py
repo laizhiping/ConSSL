@@ -143,7 +143,6 @@ class Solver():
         if self.args.stage == "pretrain":
             pretrainer = inter_session.Pretrainer(self.args, self.logger)
             pretrainer.start()
-
         elif self.args.stage == "train":
             trainer = inter_session.Trainer(self.args, self.logger)
             trainer.start()
@@ -154,16 +153,12 @@ class Solver():
             raise ValueError
 
     def inter_subject(self):
-
         if self.args.stage == "pretrain":
             pretrainer = inter_subject.Pretrainer(self.args, self.logger)
-            if self.args.loocv:
-                pretrainer.leave_one_out()
-            else:
-                pretrainer.subject_split()
+            pretrainer.start()
         elif self.args.stage == "train":
             trainer = inter_subject.Trainer(self.args, self.logger)
-            trainer.start(self.args.loocv)
+            trainer.start()
         elif self.args.stage == "test":
             trainer = inter_subject.Trainer(self.args, self.logger)
             trainer.test()

@@ -320,43 +320,25 @@ class Trainer():
 
 
     def test(self):
-        subjects = self.args.subjects
-        gestures = self.args.gestures
-        num_channels = self.args.num_channels
-        num_gestures  = len(gestures)
-        sessions = self.args.sessions
-        test_trials = self.args.test_trials
-        if self.args.task == "inter-session":
-            test_sessions = self.args.test_sessions
-
-        window_size =self.args.window_size
-
-        acc_1 = np.zeros(len(subjects))
-        acc_5 = np.zeros(len(subjects))
-        for i, subject in enumerate(subjects):
-            self.logger.info(f"Begin test linear: subject {subject}")
-            if self.args.task == "inter_session":
-                test_loader = self.get_data_loader([subject], test_sessions, gestures, test_trials)
-            elif self.args.task == "inter_subject":
-                test_loader = self.get_data_loader([subject], sessions, gestures, test_trials)
-
-            save_dir = "{}/{}/{}".format(self.args.model_dir, self.args.task, self.args.dataset_name)
-            model = linear.Net(num_channels, window_size, num_gestures, pretrained_path=f'{save_dir}/{subject}_linear_model.pth').cuda()
+        # TODO
+        acc = np.zeros((len(self.subjects), 2))
+        for i, subject in enumerate(self.subjects):
+            test_loader = self.get_data_loader([subject], self.test_sessions, self.gestures, self.test_trials)
+            results = {'test_acc@1': [], 'test_acc@5': []}
+            save_name_pre = '{}_{}_{}_{}_{}_{}'.format(subject, self.num_epochs, self.batch_size, self.feature_dim, self.temperature, self.k)
+            save_dir = "{}/{}/{}".format(self.model_dir, self.task, self.dataset_name)
+            
+            model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/{subject}_pretrained_model.pth').cuda()
             for param in model.f.parameters():
                 param.requires_grad = False
 
             # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
             # flops, params = clever_format([flops, params])
             # print('# Model Params: {} FLOPs: {}'.format(params, flops))
-            loss_criterion = nn.CrossEntropyLoss()
-            test_loss, test_acc_1, test_acc_5 = self.train_val(1, model, test_loader, None, loss_criterion)
-            acc_1[i] = test_acc_1
-            acc_5[i] = test_acc_5
-        
-        print(f"ACC@1:")
-        for item in acc_1:
-            print(item)
-        print(f"\nACC@5:")
-        for item in acc_5:
-            print(item)
-        print(f"Mean Acc@1: {acc_1.mean()}, mean Acc@5: {acc_5.mean()}") 
+            loss_criterion = torch.nn.CrossEntropyLoss()
+            test_loss, test_acc_1, test_acc_5 = self.train_val(0, model, test_loader, None, loss_criterion)
+            
+            acc[i][0], acc[i][1] = test_acc_1, test_acc_5
+            self.logger.info(f"Subject {subject} Acc@1 Acc@5: {test_acc_1} {test_acc_5}")
+        self.logger.info(f"All Acc@1 Acc@5 :\n{acc}")
+        self.logger.info(f"Avg Acc@1 Acc@5:\n {np.mean(acc, axis=0)}")
