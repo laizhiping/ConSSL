@@ -52,8 +52,8 @@ def update_args():
     parser = get_parser()
     args = parser.parse_args()
     with open(args.config, 'r') as f:
-        # default_arg = yaml.load(f, Loader=yaml.FullLoader)
-        default_arg = yaml.load(f)
+        default_arg = yaml.load(f, Loader=yaml.FullLoader)
+        # default_arg = yaml.load(f)
     # print(args)
     # print(vars(args))
     # print(default_arg)

@@ -40,6 +40,8 @@ class Pretrainer():
         self.test_trials = args.train["test_trials"]
         self.test_window_size = args.train["window_size"]
         self.test_window_step = args.train["window_step"]
+
+        self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     
     def get_pair_loader(self, subjects, sessions, gestures, trials, window_size, window_step):
         dataset = data_reader.PairReader(subjects, sessions, gestures, trials, window_size, window_step, self.dataset_name, self.dataset_path)
@@ -68,7 +70,7 @@ class Pretrainer():
         net.train()
         total_loss, total_num, train_bar = 0.0, 0, tqdm(data_loader)
         for pos_1, pos_2, target in train_bar:
-            pos_1, pos_2 = pos_1.float().cuda(non_blocking=True), pos_2.float().cuda(non_blocking=True)
+            pos_1, pos_2 = pos_1.float().to(self.device), pos_2.float().to(self.device)
             feature_1, out_1 = net(pos_1)
             feature_2, out_2 = net(pos_2)
             # print(pos_1.shape, pos_2.shape, out_1.shape, out_2.shape)
@@ -102,14 +104,14 @@ class Pretrainer():
         with torch.no_grad():
             # generate feature bank
             for data, _, target in tqdm(memory_data_loader, desc='Feature extracting'): # torch.Size([16, 1, 52, 8]), torch.Size([16])
-                feature, out = net(data.float().cuda(non_blocking=True)) # torch.Size([16, 2912]), torch.Size([16, 128])
+                feature, out = net(data.float().to(self.device)) # torch.Size([16, 2912]), torch.Size([16, 128])
                 feature_bank.append(feature)
                 feature_labels.append(target)
             # [D, N]
             feature_bank = torch.cat(feature_bank, dim=0).t().contiguous() # torch.Size([2912, 252])
             # [N]
             # feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
-            feature_labels = torch.cat(feature_labels, dim=0).cuda(non_blocking=True) # torch.Size([252])
+            feature_labels = torch.cat(feature_labels, dim=0).to(self.device) # torch.Size([252])
             return feature_bank, feature_labels    
 
     # test for one epoch, use weighted knn to find the most similar images' label to assign the test image
@@ -120,20 +122,20 @@ class Pretrainer():
         with torch.no_grad():
             # # generate feature bank
             # for data, _, target in tqdm(memory_data_loader, desc='Feature extracting'):
-            #     feature, out = net(data.float().cuda(non_blocking=True))
+            #     feature, out = net(data.float().to(self.device)
             #     feature_bank.append(feature)
             #     feature_labels.append(target)
             # # [D, N]
             # feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
             # # [N]
             # # feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
-            # feature_labels = torch.cat(feature_labels, dim=0).cuda(non_blocking=True)
+            # feature_labels = torch.cat(feature_labels, dim=0).to(self.device)
 
             # loop test data to predict the label by weighted knn search
             test_bar = tqdm(test_data_loader)
             for data, target in test_bar:
-                data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-                feature, out = net(data.float().cuda(non_blocking=True))
+                data, target = data.to(self.device), target.to(self.device)
+                feature, out = net(data.float().to(self.device))
 
                 total_num += data.size(0)
                 # compute cos similarity between each feature vector and feature bank ---> [B, N]
@@ -179,8 +181,8 @@ class Pretrainer():
 
 
             # model setup and optimizer config
-            model = framework.Model(self.num_channels, self.train_window_size, self.num_gestures, feature_dim=128).cuda()
-            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            model = framework.Model(self.num_channels, self.train_window_size, self.num_gestures, feature_dim=128).to(self.device)
+            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).to(self.device),))
             # flops, params = clever_format([flops, params])
             # print('# Model Params: {} FLOPs: {}'.format(params, flops))
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
@@ -222,8 +224,8 @@ class Pretrainer():
         # test_loader = self.get_data_loader(self.test_subjects, self.test_sessions, self.gestures, self.test_trials, self.test_window_size, self.test_window_step)
 
         # model setup and optimizer config
-        model = framework.Model(self.num_channels, self.train_window_size, self.num_gestures, feature_dim=128).cuda()
-        # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+        model = framework.Model(self.num_channels, self.train_window_size, self.num_gestures, feature_dim=128).to(self.device)
+        # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).to(self.device),))
         # flops, params = clever_format([flops, params])
         # print('# Model Params: {} FLOPs: {}'.format(params, flops))
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
@@ -295,6 +297,7 @@ class Trainer():
         self.test_sessions = args.train["test_sessions"]
         self.train_trials = args.train["train_trials"]
         self.test_trials = args.train["test_trials"]
+        self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     
     def get_data_loader(self, subjects, sessions, gestures, trials):
         dataset = data_reader.DataReader(subjects, sessions, gestures, trials, self.window_size, self.window_step, self.dataset_name, self.dataset_path)
@@ -315,7 +318,7 @@ class Trainer():
         total_loss, total_correct_1, total_correct_5, total_num, data_bar = 0.0, 0.0, 0.0, 0, tqdm(data_loader)
         with (torch.enable_grad() if is_train else torch.no_grad()):
             for data, target in data_bar:
-                data, target = data.float().cuda(non_blocking=True), target.cuda(non_blocking=True)
+                data, target = data.float().to(self.device), target.to(self.device)
                 out = net(data)
                 loss = loss_criterion(out, target)
 
@@ -349,14 +352,14 @@ class Trainer():
             save_dir = "{}/{}/{}".format(self.model_dir, self.task, self.dataset_name)
             
             if self.loocv:
-                model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/{subject}_pretrained_model.pth').cuda()
+                model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/{subject}_pretrained_model.pth').to(self.device)
             else:
-                model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/pretrained_model.pth').cuda()
+                model = linear.Net(self.num_channels, self.window_size, self.num_gestures, pretrained_path=f'{save_dir}/pretrained_model.pth').to(self.device)
             
             for param in model.f.parameters():
                 param.requires_grad = False
 
-            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).to(self.device),))
             # flops, params = clever_format([flops, params])
             # print('# Model Params: {} FLOPs: {}'.format(params, flops))
             optimizer = torch.optim.Adam(model.fc.parameters(), lr=1e-3, weight_decay=1e-6)
@@ -406,11 +409,11 @@ class Trainer():
                 test_loader = self.get_data_loader([subject], sessions, gestures, test_trials)
 
             save_dir = "{}/{}/{}".format(self.args.model_dir, self.args.task, self.args.dataset_name)
-            model = linear.Net(num_channels, window_size, num_gestures, pretrained_path=f'{save_dir}/{subject}_linear_model.pth').cuda()
+            model = linear.Net(num_channels, window_size, num_gestures, pretrained_path=f'{save_dir}/{subject}_linear_model.pth').to(self.device)
             for param in model.f.parameters():
                 param.requires_grad = False
 
-            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).cuda(),))
+            # flops, params = profile(model, inputs=(torch.randn(1, 1, self.args.window_size, self.args.num_channels).to(self.device),))
             # flops, params = clever_format([flops, params])
             # print('# Model Params: {} FLOPs: {}'.format(params, flops))
             loss_criterion = nn.CrossEntropyLoss()
