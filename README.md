@@ -1,6 +1,6 @@
-### Contrastive Domain Adaptation: A self-Supervised Learning Framework for sEMG-Based Gesture Recognition
+### Contrastive Domain Adaptation: A Self-Supervised Learning Framework for sEMG-Based Gesture Recognition
 
-This repository contains the source codes of our work: *STCN-GR: Spatial-Temporal Convolutional Networks for Surface-Electromyography-Based Gesture Recognition*.
+This repository contains the source codes of our work: *Contrastive Domain Adaptation: A Self-Supervised Learning Framework for sEMG-Based Gesture Recognition*.
 
 #### 1. Requirements
 ```
