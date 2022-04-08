@@ -1,5 +1,6 @@
-## Contrastive domain adaptation: A self-supervised Learning Framework for sEMG-Based gesture recognition
+### Contrastive Domain Adaptation: A self-Supervised Learning Framework for sEMG-Based Gesture Recognition
 
+This repository contains the source codes of our work: *STCN-GR: Spatial-Temporal Convolutional Networks for Surface-Electromyography-Based Gesture Recognition*.
 
 #### 1. Requirements
 ```
@@ -29,11 +30,13 @@ The dataset file *.mat* includes the sEMG channel data and the shape is *num_fra
 
 ##### 3. Pretrain
 ```
-python3 run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg pretrain -ne 30 -bs 16 [options]
+python3 run.py -cfg config/inter_session/capgmyo_dbb.yaml -t inter_session -sg pretrain [options]
+python3 run.py -cfg config/inter_subject/capgmyo_dbb.yaml -t inter_subject -sg pretrain [options]
 ```
 ##### 4. Train
 ```
-python3 run.py -cfg config/inter-session/capgmyo-dbb.yaml -sg train -ne 100 -bs 16 [options]
+python3 run.py -cfg config/inter_session/capgmyo_dbb.yaml -t inter_session -sg train [options]
+python3 run.py -cfg config/inter_subject/capgmyo_dbb.yaml -t inter_subject -sg train [options]
 ```
 
-*-cfg/--config* indicates the path of configuration file, *-sg/--stage* indicates stage (**pretrain/train**), *options* can be *-s/-wz/-ws*, and more details can be seen in *run.py*.
+*-cfg/--config* indicates the path of configuration file, *-t/--task* indicates task (**inter_session/inter_subject**), *-sg/--stage* indicates stage (**pretrain/train**), *options* can be *-ss/-wz/-ws/-k*, and more details can be seen in *run.py*.
