@@ -9,7 +9,7 @@ loocv: True
 pretrain:
   subjects: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
   sessions: [1, 2]
-  trials: [1, 2, 3, 4]
+  trials: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   window_size: 30 # 150ms
   window_step: 30 # 150ms
   batch_size: 32
